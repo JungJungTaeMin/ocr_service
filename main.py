@@ -1,9 +1,9 @@
 import base64
 import io
 import os
+from functools import lru_cache
 
 import certifi
-import easyocr
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
@@ -17,7 +17,8 @@ class OcrRequest(BaseModel):
 app = FastAPI(title="YakMap EasyOCR")
 os.environ.setdefault("SSL_CERT_FILE", certifi.where())
 os.environ.setdefault("REQUESTS_CA_BUNDLE", certifi.where())
-reader = easyocr.Reader(["ko", "en"], gpu=os.getenv("EASYOCR_GPU", "false").lower() == "true")
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
 
 app.add_middleware(
     CORSMiddleware,
@@ -25,6 +26,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@lru_cache(maxsize=1)
+def get_reader():
+    import easyocr
+
+    return easyocr.Reader(
+        ["ko", "en"],
+        gpu=os.getenv("EASYOCR_GPU", "false").lower() == "true",
+    )
 
 
 def decode_image(image: str) -> Image.Image:
@@ -46,6 +57,7 @@ def root():
 @app.post("/ocr")
 def extract_text(payload: OcrRequest):
     image = decode_image(payload.image)
+    reader = get_reader()
     results = reader.readtext(image)
     items = [
         {
