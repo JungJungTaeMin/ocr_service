@@ -14,7 +14,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY main.py .
-RUN python -c "import easyocr; easyocr.Reader(['ko', 'en'], gpu=False)"
+RUN python -c "import easyocr; easyocr.Reader(['ko', 'en'], gpu=False, detector=False, verbose=False)"
 
 EXPOSE 8000
 

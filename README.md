@@ -39,6 +39,9 @@ YakMap의 `/api/ocr`는 `EASY_OCR_API_ENDPOINT`를 가장 먼저 호출합니다
 EasyOCR은 PyTorch 모델을 내려받기 때문에 Vercel Node 함수 안에 직접 넣기 어렵습니다.
 Render, Railway, Fly.io 같은 파이썬 서버 환경에 이 폴더를 배포해서 연결하는 방식을 사용하세요.
 
+Render 무료 인스턴스의 512MB 메모리에 맞추기 위해 무거운 EasyOCR 탐지 모델은 로드하지
+않고, 서버가 텍스트 줄을 가볍게 분리한 뒤 EasyOCR 인식 모델로 처리합니다.
+
 ## Render 배포
 
 1. Render에서 `New` → `Web Service`
