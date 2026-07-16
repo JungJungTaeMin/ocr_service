@@ -3,6 +3,11 @@ FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV EASYOCR_MODULE_PATH=/app/.easyocr
+ENV OMP_NUM_THREADS=1
+ENV MKL_NUM_THREADS=1
+ENV OPENBLAS_NUM_THREADS=1
+ENV NUMEXPR_NUM_THREADS=1
+ENV MALLOC_ARENA_MAX=2
 
 WORKDIR /app
 
@@ -13,8 +18,9 @@ RUN apt-get update \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY main.py .
-RUN python -c "import easyocr; easyocr.Reader(['ko', 'en'], gpu=False, detector=False, verbose=False)"
+COPY main.py easyocr_runtime.py build_model.py ./
+RUN python build_model.py \
+  && rm build_model.py
 
 EXPOSE 8000
 

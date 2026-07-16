@@ -1,4 +1,5 @@
 import base64
+import gc
 import io
 import os
 from functools import lru_cache
@@ -19,6 +20,9 @@ os.environ.setdefault("SSL_CERT_FILE", certifi.where())
 os.environ.setdefault("REQUESTS_CA_BUNDLE", certifi.where())
 os.environ.setdefault("OMP_NUM_THREADS", "1")
 os.environ.setdefault("MKL_NUM_THREADS", "1")
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
+os.environ.setdefault("MALLOC_ARENA_MAX", "2")
 
 app.add_middleware(
     CORSMiddleware,
@@ -30,14 +34,12 @@ app.add_middleware(
 
 @lru_cache(maxsize=1)
 def get_reader():
-    import easyocr
+    from easyocr_runtime import EasyOcrRuntime
 
-    return easyocr.Reader(
-        ["ko", "en"],
-        gpu=os.getenv("EASYOCR_GPU", "false").lower() == "true",
-        detector=False,
-        verbose=False,
-    )
+    reader = EasyOcrRuntime()
+    gc.collect()
+
+    return reader
 
 
 def decode_image(image: str) -> Image.Image:
@@ -52,7 +54,7 @@ def decode_image(image: str) -> Image.Image:
 
 
 def prepare_image(image: Image.Image) -> Image.Image:
-    max_side = 1600
+    max_side = 1200
 
     if max(image.size) <= max_side:
         return image
@@ -118,12 +120,7 @@ def extract_text(payload: OcrRequest):
     reader = get_reader()
     results = reader.recognize(
         gray_image,
-        horizontal_list=text_lines,
-        free_list=[],
-        batch_size=1,
-        workers=0,
-        detail=1,
-        reformat=False,
+        text_lines,
     )
     items = [
         {
